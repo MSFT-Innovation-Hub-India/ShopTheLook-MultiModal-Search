@@ -132,19 +132,17 @@ async def search_by_text(
         if not query.strip():
             raise HTTPException(status_code=400, detail="Search query cannot be empty")
         
-        # Try integrated text search first (like Azure portal)
-        logger.info("Searching using integrated text search...")
-        results = await azure_clients.search_by_text_integrated(query)
+        # Primary: Vector search using multimodal text embedding
+        logger.info(f"Generating multimodal text embedding for query: {query[:50]}...")
+        embedding = await azure_clients.get_text_embedding(query)
         
-        # If no results, fall back to vector search
+        logger.info("Searching by vector similarity on imageVector field...")
+        results = await azure_clients.search_by_vector(embedding, "imageVector")
+        
+        # Fallback: Traditional text search if vector search returns no results
         if len(results) == 0:
-            logger.info(f"No results from text search, trying vector search...")
-            logger.info(f"Generating multimodal text embedding for query: {query[:50]}...")
-            embedding = await azure_clients.get_text_embedding(query)
-            
-            # Search using image vector
-            logger.info("Searching by image vector...")
-            results = await azure_clients.search_by_vector(embedding, "imageVector")
+            logger.info("No results from vector search, falling back to traditional text search...")
+            results = await azure_clients.search_by_text_integrated(query)
         
         return JSONResponse({
             "success": True,

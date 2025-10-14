@@ -8,13 +8,13 @@ This application implements three distinct search scenarios using Azure AI servi
 
 ### Search Scenarios
 
-| Scenario | Input | Embedding Model | Vector Space | Search Field |
-|----------|-------|----------------|--------------|--------------|
-| **Text Search** | Natural language query | Azure AI Vision Multimodal (text) | 1024-dimensional | `imageVector` |
-| **Image Search** | Uploaded image | Azure AI Vision Multimodal (image) | 1024-dimensional | `imageVector` |
-| **Multimodal Search** | Image + Text context | GPT-4o Vision → Multimodal Text | 1024-dimensional | `imageVector` |
+| Scenario | Input | Primary Method | Fallback Method | Search Field |
+|----------|-------|----------------|-----------------|--------------|
+| **Text Search** | Natural language query | Vector Search (Azure AI Vision text embedding) | Traditional text search on `description` | `imageVector` |
+| **Image Search** | Uploaded image | Vector Search (Azure AI Vision image embedding) | None | `imageVector` |
+| **Multimodal Search** | Image + Text context | Vector Search (GPT-4o enhanced → text embedding) | None | `imageVector` |
 
-> **Note**: Currently all search scenarios use the `imageVector` field since Azure AI Vision's multimodal embeddings create vectors in the same semantic space for both text and images, allowing cross-modal similarity search.
+> **Architecture Design**: All search modes use the `imageVector` field because Azure AI Vision's multimodal embeddings create semantically aligned vectors for both text and images in the same 1024-dimensional space, enabling true cross-modal similarity search. Text search includes a traditional keyword search fallback for edge cases.
 
 ---
 
@@ -35,27 +35,31 @@ This application implements three distinct search scenarios using Azure AI servi
 
 #### **Azure AI Search**
 - **Search Algorithm**: Vector similarity search with cosine distance
-- **Hybrid Search**: Combines vector similarity with traditional keyword search
-- **Index Fields**: Separate vector fields for text (1024D) and image (1024D) embeddings
+- **Unified Vector Field**: All searches use `imageVector` field (1024D) for cross-modal compatibility
+- **Fallback Strategy**: Text search includes traditional keyword search fallback on `description` field
 
 ---
 
 ## 🔄 Architecture Diagrams & Flows
 
-### 1. **Text Search Flow**
+### 1. **Text Search Flow (Hybrid Approach)**
 ```mermaid
 graph TD
     A[User Text Query] --> B[Azure AI Vision<br/>Multimodal Text API]
     B --> C[1024D Text Embedding]
     C --> D[Azure AI Search<br/>Vector Query]
-    D --> E[Search descriptionVector Field]
-    E --> F[Ranked Results<br/>by Cosine Similarity]
-    F --> G[Display Results<br/>with Relevancy Scores]
+    D --> E[Search imageVector Field]
+    E --> F{Results Found?}
+    F -->|Yes| G[Display Vector Results<br/>with Relevancy Scores]
+    F -->|No| H[Fallback: Traditional<br/>Text Search on description]
+    H --> I[Display Text Search<br/>Results if Any]
 ```
 
-**Endpoints Used:**
-- `POST /computervision/retrieval:vectorizeText`
-- Azure AI Search vector similarity
+**Primary Method:**
+- `POST /computervision/retrieval:vectorizeText` → Vector search on `imageVector`
+
+**Fallback Method:**
+- Traditional keyword search on `description` field (if vector search returns no results)
 
 ### 2. **Image Search Flow**  
 ```mermaid
@@ -82,7 +86,7 @@ graph TD
     D --> E[Azure AI Vision<br/>Multimodal Text API]
     E --> F[1024D Enhanced Embedding]
     F --> G[Azure AI Search<br/>Vector Query]
-    G --> H[Search descriptionVector Field]
+    G --> H[Search imageVector Field]
     H --> I[Ranked Results<br/>by Cosine Similarity]
     I --> J[Display Enhanced Results]
 ```
@@ -90,7 +94,35 @@ graph TD
 **Endpoints Used:**
 - Azure OpenAI GPT-4o Vision API
 - `POST /computervision/retrieval:vectorizeText`
-- Azure AI Search vector similarity
+- Azure AI Search vector similarity on `imageVector`
+
+---
+
+## 🎯 Cross-Modal Vector Search Architecture
+
+### **Unified Vector Space Benefits**
+
+**Why All Searches Use `imageVector` Field:**
+- **Semantic Alignment**: Azure AI Vision's multimodal embeddings ensure text and image vectors exist in the same semantic space
+- **Cross-Modal Discovery**: Text queries can find visually similar items even if descriptions differ
+- **Consistent Ranking**: All search modes use identical cosine similarity scoring
+- **Simplified Index**: Single vector field reduces complexity and improves performance
+
+### **Hybrid Text Search Strategy**
+```mermaid
+graph LR
+    A[Text Query] --> B[Generate Vector Embedding]
+    B --> C[Search imageVector Field]
+    C --> D{Results > 0?}
+    D -->|Yes| E[Return Vector Results]
+    D -->|No| F[Fallback: Keyword Search]
+    F --> G[Return Text Results]
+```
+
+**Benefits:**
+- **Primary**: Semantic understanding through vector similarity
+- **Fallback**: Ensures no query returns empty results
+- **Performance**: Vector search is typically faster and more accurate
 
 ---
 
@@ -157,9 +189,9 @@ graph TB
 ## 🚀 Key Features
 
 ### 🔍 Three Search Modes
-1. **Pure Text Search**: Natural language queries using multimodal text embeddings
+1. **Hybrid Text Search**: Vector search using multimodal text embeddings (primary) + keyword search fallback
 2. **Pure Image Search**: Visual similarity using multimodal image embeddings  
-3. **AI-Enhanced Multimodal**: GPT-4o analyzes image context to generate enhanced text queries
+3. **AI-Enhanced Multimodal**: GPT-4o analyzes image context to generate enhanced text queries for vector search
 
 ### 🎨 User Experience
 - **Responsive Design**: Works on desktop, tablet, and mobile
