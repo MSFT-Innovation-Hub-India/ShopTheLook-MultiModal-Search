@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ app_title }}</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="/static/style.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container-fluid">
+        <!-- Header -->
+        <header class="row bg-primary text-white py-3 mb-4">
+            <div class="col-12">
+                <div class="d-flex align-items-center justify-content-between">
+                    <h1 class="h3 mb-0">
+                        <i class="bi bi-search me-2"></i>
+                        {{ app_title }}
+                    </h1>
+                    <div class="text-end">
+                        <small class="opacity-75">Powered by Azure AI</small>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Search Interface -->
+        <main class="row">
+            <div class="col-12 col-lg-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">
+                            <i class="bi bi-sliders me-2"></i>
+                            Search Options
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Search Type Tabs -->
+                        <ul class="nav nav-pills mb-3" id="searchTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="image-tab" data-bs-toggle="pill" 
+                                        data-bs-target="#image-search" type="button" role="tab">
+                                    <i class="bi bi-image me-1"></i>
+                                    Image
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="text-tab" data-bs-toggle="pill" 
+                                        data-bs-target="#text-search" type="button" role="tab">
+                                    <i class="bi bi-chat-text me-1"></i>
+                                    Text
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="multimodal-tab" data-bs-toggle="pill" 
+                                        data-bs-target="#multimodal-search" type="button" role="tab">
+                                    <i class="bi bi-layers me-1"></i>
+                                    Both
+                                </button>
+                            </li>
+                        </ul>
+
+                        <!-- Search Forms -->
+                        <div class="tab-content" id="searchTabContent">
+                            <!-- Image Search -->
+                            <div class="tab-pane fade show active" id="image-search" role="tabpanel">
+                                <form id="imageSearchForm" enctype="multipart/form-data">
+                                    <div class="mb-3">
+                                        <label class="form-label">Upload Image</label>
+                                        <div class="image-upload-area" id="imageUploadArea">
+                                            <div class="upload-placeholder">
+                                                <i class="bi bi-cloud-upload display-4 text-muted"></i>
+                                                <p class="mt-2 mb-1">Drag & drop an image here</p>
+                                                <p class="small text-muted">or click to browse</p>
+                                                <input type="file" class="form-control" id="imageFile" 
+                                                       name="image" accept=".jpg,.jpeg,.png,.webp,.bmp" hidden>
+                                            </div>
+                                            <div class="image-preview" id="imagePreview" style="display: none;">
+                                                <img id="previewImg" src="" alt="Preview" class="img-fluid rounded">
+                                                <button type="button" class="btn btn-sm btn-danger remove-image" 
+                                                        id="removeImage">
+                                                    <i class="bi bi-x-lg"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="form-text">
+                                            Max {{ max_file_size }}MB. Supported: {{ allowed_extensions }}
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary w-100" disabled id="imageSearchBtn">
+                                        <i class="bi bi-search me-2"></i>
+                                        Search by Image
+                                    </button>
+                                </form>
+                            </div>
+
+                            <!-- Text Search -->
+                            <div class="tab-pane fade" id="text-search" role="tabpanel">
+                                <form id="textSearchForm">
+                                    <div class="mb-3">
+                                        <label for="textQuery" class="form-label">Search Query</label>
+                                        <textarea class="form-control" id="textQuery" name="query" rows="4" 
+                                                placeholder="Describe the apparel you're looking for... (e.g., 'red summer dress', 'casual blue jeans', 'formal blazer')"></textarea>
+                                    </div>
+                                    <button type="submit" class="btn btn-success w-100" id="textSearchBtn">
+                                        <i class="bi bi-chat-text me-2"></i>
+                                        Search by Text
+                                    </button>
+                                </form>
+                            </div>
+
+                            <!-- Multimodal Search -->
+                            <div class="tab-pane fade" id="multimodal-search" role="tabpanel">
+                                <form id="multimodalSearchForm" enctype="multipart/form-data">
+                                    <div class="mb-3">
+                                        <label class="form-label">Upload Image</label>
+                                        <div class="image-upload-area" id="multimodalImageUploadArea">
+                                            <div class="upload-placeholder">
+                                                <i class="bi bi-cloud-upload display-6 text-muted"></i>
+                                                <p class="mt-2 mb-0 small">Select image</p>
+                                                <input type="file" class="form-control" id="multimodalImageFile" 
+                                                       name="image" accept=".jpg,.jpeg,.png,.webp,.bmp" hidden>
+                                            </div>
+                                            <div class="image-preview" id="multimodalImagePreview" style="display: none;">
+                                                <img id="multimodalPreviewImg" src="" alt="Preview" class="img-fluid rounded">
+                                                <button type="button" class="btn btn-sm btn-danger remove-image" 
+                                                        id="removeMultimodalImage">
+                                                    <i class="bi bi-x-lg"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="multimodalQuery" class="form-label">Context & Query</label>
+                                        <textarea class="form-control" id="multimodalQuery" name="query" rows="3" 
+                                                placeholder="Provide context for the image... (e.g., 'find similar items for summer vacation', 'business casual alternative')"></textarea>
+                                    </div>
+                                    <button type="submit" class="btn btn-warning w-100" disabled id="multimodalSearchBtn">
+                                        <i class="bi bi-layers me-2"></i>
+                                        AI-Powered Search
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Clear Results Button -->
+                        <button class="btn btn-outline-secondary w-100 mt-3" id="clearResults" style="display: none;">
+                            <i class="bi bi-arrow-clockwise me-2"></i>
+                            Clear & Start Over
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div class="col-12 col-lg-8">
+                <!-- Loading State -->
+                <div class="text-center py-5" id="loadingState" style="display: none;">
+                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <h5 class="text-muted">Analyzing and searching...</h5>
+                    <p class="text-muted small">This may take a few moments</p>
+                </div>
+
+                <!-- Welcome State -->
+                <div class="text-center py-5" id="welcomeState">
+                    <i class="bi bi-search display-1 text-muted mb-4"></i>
+                    <h3 class="text-muted mb-3">Welcome to Multimodal Search</h3>
+                    <p class="text-muted">
+                        Choose your preferred search method on the left to find the perfect apparel items.
+                    </p>
+                    <div class="row mt-4">
+                        <div class="col-md-4 mb-3">
+                            <div class="card bg-light border-0 h-100">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-image text-primary display-6"></i>
+                                    <h6 class="mt-2">Image Search</h6>
+                                    <p class="small text-muted mb-0">Upload a photo to find similar items</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card bg-light border-0 h-100">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-chat-text text-success display-6"></i>
+                                    <h6 class="mt-2">Text Search</h6>
+                                    <p class="small text-muted mb-0">Describe what you're looking for</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card bg-light border-0 h-100">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-layers text-warning display-6"></i>
+                                    <h6 class="mt-2">AI-Powered</h6>
+                                    <p class="small text-muted mb-0">Combine image and text for precise results</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results Grid -->
+                <div id="resultsContainer" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4 id="resultsTitle">Search Results</h4>
+                        <span class="badge bg-primary" id="resultCount">0 items</span>
+                    </div>
+                    
+                    <!-- Enhanced Query Display (for multimodal) -->
+                    <div class="alert alert-info" id="enhancedQuery" style="display: none;">
+                        <strong>AI Enhanced Query:</strong> <span id="enhancedQueryText"></span>
+                    </div>
+                    
+                    <div class="row" id="resultsGrid">
+                        <!-- Results will be dynamically inserted here -->
+                    </div>
+                </div>
+
+                <!-- Error State -->
+                <div class="alert alert-danger text-center" id="errorState" style="display: none;">
+                    <i class="bi bi-exclamation-triangle display-6 mb-3"></i>
+                    <h5>Something went wrong</h5>
+                    <p id="errorMessage">Please try again or contact support if the problem persists.</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Item Detail Modal -->
+    <div class="modal fade" id="itemDetailModal" tabindex="-1" aria-labelledby="itemDetailModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="itemDetailModalLabel">Item Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="item-image-container">
+                                <img id="modalItemImage" src="" alt="Item Image" class="img-fluid rounded">
+                                <span id="modalScoreBadge" class="score-badge"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="item-attributes">
+                                <h6 id="modalItemTitle" class="fw-bold mb-3"></h6>
+                                
+                                <div class="attribute-grid">
+                                    <div class="attribute-item">
+                                        <strong>Price:</strong>
+                                        <span id="modalItemPrice" class="modal-price-value"></span>
+                                    </div>
+                                    <div class="attribute-item">
+                                        <strong>Relevance Score:</strong>
+                                        <span id="modalItemRelevance" class="relevance-value"></span>
+                                    </div>
+                                    <div class="attribute-item">
+                                        <strong>ID:</strong>
+                                        <span id="modalItemId"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <div class="enhanced-description">
+                        <h6 class="mb-3">
+                            <i class="bi bi-stars me-2"></i>AI Fashion Analysis
+                        </h6>
+                        <div id="enhancedDescriptionContainer">
+                            <div id="enhancedDescriptionLoading" class="text-center py-3">
+                                <div class="spinner-border spinner-border-sm me-2" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                Analyzing fashion details with AI...
+                            </div>
+                            <p id="enhancedDescription" class="enhanced-text" style="display: none;"></p>
+                            <div id="enhancedDescriptionError" class="alert alert-warning" style="display: none;">
+                                <i class="bi bi-exclamation-triangle me-2"></i>
+                                Unable to generate AI analysis. Please try again.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JavaScript -->
+    <script src="/static/app.js"></script>
+</body>
+</html>
