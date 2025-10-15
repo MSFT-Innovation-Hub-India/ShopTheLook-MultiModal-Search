@@ -64,16 +64,27 @@ class AzureServiceClients:
             self.vision_endpoint = settings.azure_computer_vision_endpoint.rstrip('/')
             self.vision_api_key = settings.azure_computer_vision_api_key
             
-            # Initialize Azure OpenAI client with Entra ID authentication
-            openai_token_provider = get_bearer_token_provider(
-                self.credential,
-                "https://cognitiveservices.azure.com/.default"
-            )
-            self.openai_client = AsyncAzureOpenAI(
-                azure_endpoint=settings.azure_openai_endpoint,
-                azure_ad_token_provider=openai_token_provider,
-                api_version=settings.azure_oai_api_version
-            )
+            # Initialize Azure OpenAI client with API key or Managed Identity
+            if settings.azure_openai_api_key:
+                # Use API key authentication
+                self.openai_client = AsyncAzureOpenAI(
+                    azure_endpoint=settings.azure_openai_endpoint,
+                    api_key=settings.azure_openai_api_key,
+                    api_version=settings.azure_oai_api_version
+                )
+                logger.info("Azure OpenAI client initialized with API key authentication")
+            else:
+                # Fallback to Managed Identity authentication
+                openai_token_provider = get_bearer_token_provider(
+                    self.credential,
+                    "https://cognitiveservices.azure.com/.default"
+                )
+                self.openai_client = AsyncAzureOpenAI(
+                    azure_endpoint=settings.azure_openai_endpoint,
+                    azure_ad_token_provider=openai_token_provider,
+                    api_version=settings.azure_oai_api_version
+                )
+                logger.info("Azure OpenAI client initialized with Managed Identity authentication")
             
             self._initialized = True
             logger.info("Azure service clients initialized successfully")

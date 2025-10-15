@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     azure_oai_deployment: str
     azure_openai_embedding_model: str
     azure_oai_api_version: str
+    azure_openai_api_key: Optional[str] = None
     
     # Azure Computer Vision Configuration
     azure_computer_vision_endpoint: str

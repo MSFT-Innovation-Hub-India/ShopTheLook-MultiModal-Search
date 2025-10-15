@@ -156,9 +156,11 @@ graph TD
 | `AZURE_COMPUTER_VISION_ENDPOINT` | **Computer Vision** | Multimodal embeddings API | `https://your-vision.cognitiveservices.azure.com/` |
 | `AZURE_COMPUTER_VISION_API_KEY` | **Computer Vision** | API authentication | `your_api_key_here` |
 | `AZURE_OPENAI_ENDPOINT` | **OpenAI** | GPT-4o vision analysis | `https://your-openai.openai.azure.com/` |
+| `AZURE_OPENAI_API_KEY` | **OpenAI** | API authentication (optional, fallback to Managed Identity) | `your_openai_api_key_here` |
 | `AZURE_OAI_DEPLOYMENT` | **OpenAI** | GPT-4o model deployment | `gpt-4o` |
 | `AZURE_SEARCH_SERVICE_ENDPOINT` | **AI Search** | Vector search service | `https://your-search.search.windows.net` |
 | `AZURE_SEARCH_INDEX_NAME` | **AI Search** | Target search index | `apparel-multimodal-index` |
+| `AZURE_SEARCH_API_KEY` | **AI Search** | API authentication (optional, fallback to Managed Identity) | `your_search_api_key_here` |
 
 ### Azure Service Dependencies
 
@@ -472,7 +474,7 @@ open http://localhost:8000
 | Service | Authentication Method | Configuration |
 |---------|----------------------|---------------|
 | **Azure AI Vision** | API Key | `AZURE_COMPUTER_VISION_API_KEY` |
-| **Azure OpenAI** | Managed Identity | `DefaultAzureCredential` with Entra ID |
+| **Azure OpenAI** | API Key (fallback to Managed Identity) | `AZURE_OPENAI_API_KEY` |
 | **Azure AI Search** | API Key (fallback to Managed Identity) | `AZURE_SEARCH_API_KEY` |
 
 ### Authentication Flow
@@ -480,12 +482,16 @@ open http://localhost:8000
 graph TD
     A[FastAPI Application] --> B{Service Type}
     B -->|AI Vision| C[API Key Authentication]
-    B -->|OpenAI| D[Managed Identity<br/>DefaultAzureCredential]
+    B -->|OpenAI| D{API Key Available?}
     B -->|AI Search| E[API Key or<br/>Managed Identity]
     
-    D --> F[Token Provider<br/>cognitiveservices.azure.com]
-    C --> G[Direct API Key Header]
-    E --> H[Search Service Access]
+    D -->|Yes| F[Direct API Key<br/>Authentication]
+    D -->|No| G[Managed Identity<br/>DefaultAzureCredential]
+    C --> H[Direct API Key Header]
+    E --> I[Search Service Access]
+    F --> J[OpenAI Service Access]
+    G --> K[Token Provider<br/>cognitiveservices.azure.com]
+    K --> J
 ```
 
 ### Required Azure Permissions
