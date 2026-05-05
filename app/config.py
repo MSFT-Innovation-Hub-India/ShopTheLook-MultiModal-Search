@@ -16,11 +16,9 @@ class Settings(BaseSettings):
     azure_oai_deployment: str
     azure_openai_embedding_model: str
     azure_oai_api_version: str
-    azure_openai_api_key: Optional[str] = None
     
     # Azure Computer Vision Configuration
     azure_computer_vision_endpoint: str
-    azure_computer_vision_api_key: str
     
     # Azure AI Vision Multimodal Embeddings Configuration
     azure_vision_api_version: str = "2024-02-01"
@@ -29,7 +27,6 @@ class Settings(BaseSettings):
     # Azure AI Search Configuration
     azure_search_service_endpoint: str
     azure_search_index_name: str
-    azure_search_api_key: Optional[str] = None
     
     # Application Configuration
     app_title: str = "Multimodal Apparel Search"

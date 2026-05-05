@@ -11,7 +11,6 @@ from io import BytesIO
 import json
 
 from azure.identity.aio import DefaultAzureCredential, get_bearer_token_provider
-from azure.core.credentials import AzureKeyCredential
 from azure.search.documents.aio import SearchClient
 from azure.search.documents.models import VectorizedQuery
 from openai import AsyncAzureOpenAI
@@ -44,47 +43,34 @@ class AzureServiceClients:
             # Initialize Azure Default Credentials (works with Managed Identity for Search & OpenAI)
             self.credential = DefaultAzureCredential()
             
-            # Initialize Azure AI Search client
-            # Use API key if provided, otherwise use Managed Identity (requires proper RBAC)
-            if settings.azure_search_api_key:
-                search_credential = AzureKeyCredential(settings.azure_search_api_key)
-            else:
-                search_credential = self.credential
-                
+            # Initialize Azure AI Search client using Managed Identity
             self.search_client = SearchClient(
                 endpoint=settings.azure_search_service_endpoint,
                 index_name=settings.azure_search_index_name,
-                credential=search_credential
+                credential=self.credential
             )
             
             # Initialize HTTP session for Computer Vision multimodal embeddings API
             self.http_session = aiohttp.ClientSession()
             
-            # Store Computer Vision credentials and endpoint for multimodal API calls
+            # Store Computer Vision endpoint; auth via Managed Identity bearer token
             self.vision_endpoint = settings.azure_computer_vision_endpoint.rstrip('/')
-            self.vision_api_key = settings.azure_computer_vision_api_key
+            self.vision_token_provider = get_bearer_token_provider(
+                self.credential,
+                "https://cognitiveservices.azure.com/.default"
+            )
             
-            # Initialize Azure OpenAI client with API key or Managed Identity
-            if settings.azure_openai_api_key:
-                # Use API key authentication
-                self.openai_client = AsyncAzureOpenAI(
-                    azure_endpoint=settings.azure_openai_endpoint,
-                    api_key=settings.azure_openai_api_key,
-                    api_version=settings.azure_oai_api_version
-                )
-                logger.info("Azure OpenAI client initialized with API key authentication")
-            else:
-                # Fallback to Managed Identity authentication
-                openai_token_provider = get_bearer_token_provider(
-                    self.credential,
-                    "https://cognitiveservices.azure.com/.default"
-                )
-                self.openai_client = AsyncAzureOpenAI(
-                    azure_endpoint=settings.azure_openai_endpoint,
-                    azure_ad_token_provider=openai_token_provider,
-                    api_version=settings.azure_oai_api_version
-                )
-                logger.info("Azure OpenAI client initialized with Managed Identity authentication")
+            # Initialize Azure OpenAI client using Managed Identity (DefaultAzureCredential)
+            openai_token_provider = get_bearer_token_provider(
+                self.credential,
+                "https://cognitiveservices.azure.com/.default"
+            )
+            self.openai_client = AsyncAzureOpenAI(
+                azure_endpoint=settings.azure_openai_endpoint,
+                azure_ad_token_provider=openai_token_provider,
+                api_version=settings.azure_oai_api_version
+            )
+            logger.info("Azure OpenAI client initialized with Managed Identity (DefaultAzureCredential)")
             
             self._initialized = True
             logger.info("Azure service clients initialized successfully")
@@ -129,9 +115,10 @@ class AzureServiceClients:
             # Call Azure Computer Vision multimodal embeddings API
             url = f"{self.vision_endpoint}/computervision/retrieval:vectorizeImage"
             
+            token = await self.vision_token_provider()
             headers = {
                 "Content-Type": "application/octet-stream",
-                "Ocp-Apim-Subscription-Key": self.vision_api_key
+                "Authorization": f"Bearer {token}"
             }
             
             params = {
@@ -183,9 +170,10 @@ class AzureServiceClients:
             # Call Azure Computer Vision multimodal embeddings API
             url = f"{self.vision_endpoint}/computervision/retrieval:vectorizeText"
             
+            token = await self.vision_token_provider()
             headers = {
                 "Content-Type": "application/json",
-                "Ocp-Apim-Subscription-Key": self.vision_api_key
+                "Authorization": f"Bearer {token}"
             }
             
             params = {
@@ -264,7 +252,7 @@ Provide a concise but descriptive search query (max 100 words) that would help f
             response = await self.openai_client.chat.completions.create(
                 model=settings.azure_oai_deployment,
                 messages=messages,
-                max_tokens=200,
+                max_completion_tokens=200,
                 temperature=0.3
             )
             
@@ -345,7 +333,7 @@ Keep each bullet point concise (1-2 lines) and engaging. Use fashion-forward lan
             response = await self.openai_client.chat.completions.create(
                 model=settings.azure_oai_deployment,
                 messages=messages,
-                max_tokens=300,
+                max_completion_tokens=300,
                 temperature=0.7  # Slightly higher temperature for creative descriptions
             )
             
